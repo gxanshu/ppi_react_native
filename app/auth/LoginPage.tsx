@@ -1,55 +1,61 @@
+import { useAuth } from "@/context/AuthContext";
+import { auth } from "@/utils/firebase";
 import { Icon, Input, Layout, Text, Button } from "@ui-kitten/components";
+import { signInWithEmailAndPassword } from "firebase/auth";
 import { useState } from "react";
-import { StyleSheet, TouchableOpacity, TouchableWithoutFeedback, View } from "react-native";
+import { StyleSheet, TouchableOpacity } from "react-native";
+import Toast from "react-native-root-toast";
 
 interface Props {
 	pageHandler: () => void;
 }
 
 export default function LoginPage({ pageHandler }: Props) {
-	const [email, setEmail] = useState('');
-	const [password, setPassword] = useState('');
-	const [secureTextEntry, setSecureTextEntry] = useState(true);
+	const [email, setEmail] = useState("");
+	const [password, setPassword] = useState("");
+	const {signIn} = useAuth();
 
-	const toggleSecureEntry = (): void => {
-		setSecureTextEntry(!secureTextEntry);
+	const handleLogin = async () => {
+		if (!email.length || !password.length) {
+			Toast.show("Enter your details!", {
+				duration: Toast.durations.SHORT,
+			});
+			return;
+		}
+
+		try {
+			const user = await signInWithEmailAndPassword(auth, email, password);
+			signIn(user.user);
+			
+		} catch (e: any) {
+			Toast.show(e.message, {
+				duration: Toast.durations.SHORT,
+			});
+		}
 	};
-
-	const renderIcon = (props: any): React.ReactElement => (
-		<TouchableWithoutFeedback onPress={toggleSecureEntry}>
-			<Icon
-				{...props}
-				name={secureTextEntry ? 'eye-off' : 'eye'}
-			/>
-		</TouchableWithoutFeedback>
-	);
 
 	return (
 		<Layout style={styles.container}>
-			<Icon
-				style={styles.icon}
-				fill='#8F9BB3'
-				name='person'
-			/>
-			<Text category="h5" style={styles.heading}>Welcome!</Text>
+			<Icon style={styles.icon} fill="#8F9BB3" name="person" />
+			<Text category="h5" style={styles.heading}>
+				Welcome!
+			</Text>
 			<Input
-				placeholder='Your Email'
+				placeholder="Your Email"
 				keyboardType="email-address"
 				style={styles.input}
 				value={email}
-				onChangeText={nextValue => setEmail(nextValue)}
+				onChangeText={(nextValue) => setEmail(nextValue)}
 				accessoryRight={<Icon name="email" />}
 			/>
 			<Input
-				placeholder='Your Password'
+				placeholder="Your Password"
 				keyboardType="visible-password"
 				style={styles.input}
 				value={password}
-				onChangeText={nextValue => setPassword(nextValue)}
-				accessoryRight={renderIcon}
-				secureTextEntry={secureTextEntry}
+				onChangeText={(nextValue) => setPassword(nextValue)}
 			/>
-			<Button style={styles.button}>
+			<Button style={styles.button} onPress={handleLogin}>
 				Login
 			</Button>
 			<Layout style={styles.register}>
@@ -58,17 +64,17 @@ export default function LoginPage({ pageHandler }: Props) {
 				</TouchableOpacity>
 			</Layout>
 		</Layout>
-	)
+	);
 }
 
 const styles = StyleSheet.create({
 	container: {
 		flex: 1,
-		alignItems: 'center',
-		justifyContent: 'center',
-		fontFamily: 'Inter',
+		alignItems: "center",
+		justifyContent: "center",
+		fontFamily: "Inter",
 		marginLeft: 20,
-		marginRight: 20
+		marginRight: 20,
 	},
 	icon: {
 		width: 42,
@@ -76,19 +82,19 @@ const styles = StyleSheet.create({
 	},
 	heading: {
 		fontFamily: "InterBold",
-		marginBottom: 10
+		marginBottom: 10,
 	},
 	input: {
 		marginTop: 6,
-		marginBottom: 6
+		marginBottom: 6,
 	},
 	button: {
 		marginTop: 10,
 		marginBottom: 10,
-		width: '100%'
+		width: "100%",
 	},
 	register: {
-		width: '100%',
+		width: "100%",
 		alignItems: "flex-end",
-	}
+	},
 });

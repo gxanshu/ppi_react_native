@@ -1,52 +1,50 @@
-import FontAwesome from '@expo/vector-icons/FontAwesome';
-import { Link, Redirect, Tabs } from 'expo-router';
-import { Pressable, Text } from 'react-native';
-import { useSession } from '@/context/authContext';
-import { auth } from '@/utils/firebase';
-import Loader from '@/components/Loader';
-import { useEffect } from 'react';
-import { onAuthStateChanged } from 'firebase/auth';
+import FontAwesome from "@expo/vector-icons/FontAwesome";
+import { Link, Tabs } from "expo-router";
+import { Pressable } from "react-native";
+import Loader from "@/components/Loader";
+import { useAuth } from "@/context/AuthContext";
+import AuthHandlerPage from "../auth";
 
 /**
  * You can explore the built-in icon families and icons on the web at https://icons.expo.fyi/
  */
 function TabBarIcon(props: {
-  name: React.ComponentProps<typeof FontAwesome>['name'];
+  name: React.ComponentProps<typeof FontAwesome>["name"];
   color: string;
 }) {
   return <FontAwesome size={28} style={{ marginBottom: -3 }} {...props} />;
 }
 
 export default function TabLayout() {
-  const { session, signIn } = useSession();
+  const { user, loading, signOut } = useAuth();
 
-  useEffect(()=> {
-    onAuthStateChanged(auth, (user) => {
-      if (user) signIn(user);
-    })
-  }, [])
+
+  if (loading) {
+    return <Loader />;
+  }
 
   // Only require authentication within the (app) group's layout as users
   // need to be able to access the (auth) group and sign in again.
-  if (!session) {
+  if (!user) {
     // On web, static rendering will stop here as the user is not authenticated
     // in the headless Node process that the pages are rendered in.
-    return <Redirect href="/auth" />;
+    return <AuthHandlerPage/>
   }
 
   return (
     <Tabs
       screenOptions={{
         tabBarActiveTintColor: "#4169e1",
-      }}>
+      }}
+    >
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Tab One',
+          title: "Tab One",
           tabBarIcon: ({ color }) => <TabBarIcon name="code" color={color} />,
           headerRight: () => (
             <Link href="/" asChild>
-              <Pressable>
+              <Pressable onPress={signOut}>
                 {({ pressed }) => (
                   <FontAwesome
                     name="info-circle"
@@ -63,7 +61,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="two"
         options={{
-          title: 'Tab Two',
+          title: "Tab Two",
           tabBarIcon: ({ color }) => <TabBarIcon name="code" color={color} />,
         }}
       />

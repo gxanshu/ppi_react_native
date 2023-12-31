@@ -14,7 +14,7 @@ import {
 	StatusBar,
 	StyleSheet,
 	TouchableOpacity,
-	Image
+	Image,
 } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import { districts } from "@/utils/districts";
@@ -24,7 +24,11 @@ import { doc, getDoc, setDoc } from "firebase/firestore";
 import { auth, db, realtimeDB, storage } from "@/utils/firebase";
 import { createUserWithEmailAndPassword } from "firebase/auth";
 import { ref, uploadBytes } from "firebase/storage";
-import { child, get, ref as realtimeRef, update } from "firebase/database";
+import {
+	increment,
+	ref as realtimeRef,
+	update,
+} from "firebase/database";
 
 interface Props {
 	pageHandler: () => void;
@@ -189,13 +193,13 @@ export default function RegisterPage({ pageHandler }: Props) {
 
 			// increment district total user
 			const dbRef = realtimeRef(realtimeDB);
-			get(child(dbRef, `rajasthan/${districts[district.row]}`)).then(
-				(snapshot) => {
-					update(realtimeRef(realtimeDB), {
-						[`rajasthan/${districts[district.row]}`]: snapshot.val() + 1,
-					});
-				},
-			);
+			const updates: any = {};
+			updates[`rajasthan/${districts[district.row]}`] = increment(1);
+			update(dbRef, updates);
+
+			Toast.show("Registered Successfully!", {
+				duration: Toast.durations.SHORT,
+			});
 
 			setLoading(false);
 		} catch (e: any) {
@@ -360,7 +364,7 @@ const styles = StyleSheet.create({
 		fontFamily: "Inter",
 		marginLeft: 20,
 		marginRight: 20,
-		paddingTop: StatusBar.currentHeight! + 20,
+		paddingTop: StatusBar.currentHeight! + 40,
 		paddingBottom: StatusBar.currentHeight! + 20,
 	},
 	icon: {
