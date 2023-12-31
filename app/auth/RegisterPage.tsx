@@ -29,6 +29,8 @@ import {
 	ref as realtimeRef,
 	update,
 } from "firebase/database";
+import { getFileExtension } from "@/utils/tools";
+import { useAuth } from "@/context/AuthContext";
 
 interface Props {
 	pageHandler: () => void;
@@ -49,6 +51,7 @@ export default function RegisterPage({ pageHandler }: Props) {
 		useState<ImagePicker.ImagePickerAsset | null>(null);
 	const [password, setPassword] = useState<string>();
 	const [loading, setLoading] = useState(false);
+	const {signIn} = useAuth()
 
 	const possibleUserTypes = ["Member - 20", "Driver - 50", "Associate - 100"];
 
@@ -120,14 +123,12 @@ export default function RegisterPage({ pageHandler }: Props) {
 			setLoading(true);
 
 			// creating user
-			await createUserWithEmailAndPassword(auth, email, password);
+			const user = await createUserWithEmailAndPassword(auth, email, password);
 
 			// uploading image
 			let documentRef = ref(
 				storage,
-				`documents/${phoneNumber}/aadharFront.${aadharFront.type?.split(
-					"/",
-				)[1]}`,
+				`documents/${phoneNumber}/aadharFront.${getFileExtension(aadharFront.uri)}`,
 			);
 
 			const aadharFrontblob: Blob = await new Promise((resolve, reject) => {
@@ -145,12 +146,12 @@ export default function RegisterPage({ pageHandler }: Props) {
 			});
 
 			await uploadBytes(documentRef, aadharFrontblob, {
-				contentType: aadharFront.type,
+				contentType: `image/${getFileExtension(aadharFront.uri)}`,
 			});
 
 			documentRef = ref(
 				storage,
-				`documents/${phoneNumber}/aadharBack.${aadharBack.type?.split("/")[1]}`,
+				`documents/${phoneNumber}/aadharBack.${getFileExtension(aadharBack.uri)}`,
 			);
 
 			const aadharBackblob: Blob = await new Promise((resolve, reject) => {
@@ -168,7 +169,7 @@ export default function RegisterPage({ pageHandler }: Props) {
 			});
 
 			await uploadBytes(documentRef, aadharBackblob, {
-				contentType: aadharBack.type,
+				contentType: `image/${getFileExtension(aadharBack.uri)}`,
 			});
 
 			// saving user's data
@@ -180,12 +181,8 @@ export default function RegisterPage({ pageHandler }: Props) {
 				District: districts[district.row],
 				EmailAddress: email,
 				Type: possibleUserTypes[userType.row],
-				AadharFrontFile: `documents/${phoneNumber}/aadharFront.${aadharFront.type?.split(
-					"/",
-				)[1]}`,
-				AadharBackFile: `documents/${phoneNumber}/aadharBack.${aadharBack.type?.split(
-					"/",
-				)[1]}`,
+				AadharFrontFile: `documents/${phoneNumber}/aadharFront.${getFileExtension(aadharFront.uri)}`,
+				AadharBackFile: `documents/${phoneNumber}/aadharBack.${getFileExtension(aadharBack.uri)}`,
 				CreatedAt: new Date().toISOString(),
 			};
 
@@ -200,6 +197,8 @@ export default function RegisterPage({ pageHandler }: Props) {
 			Toast.show("Registered Successfully!", {
 				duration: Toast.durations.SHORT,
 			});
+
+			signIn(user.user);
 
 			setLoading(false);
 		} catch (e: any) {
