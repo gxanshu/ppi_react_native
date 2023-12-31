@@ -46,7 +46,7 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="search/index"
+        name="search"
         options={{
           title: "Search",
           headerShown: false,
@@ -61,7 +61,7 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="about/index"
+        name="about"
         options={{
           title: "about",
           tabBarIcon: ({ color }) => <Icon style={icon} fill={color} name="person-outline" />

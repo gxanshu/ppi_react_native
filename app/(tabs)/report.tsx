@@ -13,7 +13,7 @@ export default function ReportPage() {
 				style={styles.button}
 				status="info"
 				onPress={()=> {
-					Linking.openURL(`whatsapp://send?phone=$916367983544&text=Hello!`);
+					Linking.openURL(`mailto:parivartanpartyrajasthan@gmail.com`);
 				}}
 			>
 				Contact Us
