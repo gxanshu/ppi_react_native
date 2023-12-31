@@ -33,7 +33,7 @@ export default function StatisticsPage() {
 	}, []);
 
 	return (
-		<Layout level="2">
+		<Layout level="2" style={{height: "100%"}}>
 			<ScrollView>
 			<Layout style={styles.container}>
 				<ImageBackground

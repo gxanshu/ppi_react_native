@@ -36,6 +36,19 @@ interface Props {
 	pageHandler: () => void;
 }
 
+export interface UserType {
+	Name: string,
+	FatherName: string,
+	PhoneNumber: string,
+	Address: string,
+	District: string,
+	EmailAddress: string,
+	Type: string,
+	AadharFrontFile: string,
+	AadharBackFile: string,
+	CreatedAt: string
+}
+
 export default function RegisterPage({ pageHandler }: Props) {
 	const [firstName, setFirstName] = useState<string>();
 	const [lastName, setLastName] = useState<string>();
@@ -173,7 +186,7 @@ export default function RegisterPage({ pageHandler }: Props) {
 			});
 
 			// saving user's data
-			const data = {
+			const data: UserType = {
 				Name: `${firstName} ${lastName}`,
 				FatherName: fatherName,
 				PhoneNumber: phoneNumber,
@@ -361,8 +374,8 @@ const styles = StyleSheet.create({
 		alignItems: "center",
 		justifyContent: "center",
 		fontFamily: "Inter",
-		marginLeft: 20,
-		marginRight: 20,
+		paddingLeft: 20,
+		paddingRight: 20,
 		paddingTop: StatusBar.currentHeight! + 40,
 		paddingBottom: StatusBar.currentHeight! + 20,
 	},

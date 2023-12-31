@@ -1,7 +1,6 @@
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { DefaultTheme, ThemeProvider } from "@react-navigation/native";
 import { useFonts } from "expo-font";
-import { Slot } from "expo-router";
 import { useEffect } from "react";
 import Loader from "@/components/Loader";
 import { StatusBar } from "expo-status-bar";
@@ -10,6 +9,7 @@ import * as eva from "@eva-design/eva";
 import { EvaIconsPack } from "@ui-kitten/eva-icons";
 import { RootSiblingParent } from "react-native-root-siblings";
 import { AuthProvider } from "@/context/AuthContext";
+import { Stack } from "expo-router";
 
 export {
   // Catch any errors thrown by the Layout component.
@@ -48,7 +48,10 @@ function RootLayoutNav() {
       <RootSiblingParent>
         <ApplicationProvider {...eva} theme={eva.light}>
           <AuthProvider>
-            <Slot />
+            <Stack>
+              <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+              <Stack.Screen name="user/[id]" options={{ presentation: 'modal', title: "User" }} />
+            </Stack>
           </AuthProvider>
         </ApplicationProvider>
       </RootSiblingParent>

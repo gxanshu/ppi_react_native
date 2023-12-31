@@ -73,8 +73,8 @@ const styles = StyleSheet.create({
 		alignItems: "center",
 		justifyContent: "center",
 		fontFamily: "Inter",
-		marginLeft: 20,
-		marginRight: 20,
+		paddingLeft: 20,
+		paddingRight: 20,
 	},
 	icon: {
 		width: 42,
