@@ -1,9 +1,9 @@
 import { View, Text } from "react-native";
 
-export default function HomePage() {
+export default function ReportPage() {
 	return (
 		<View>
-			<Text>HomePage</Text>
+			<Text>ReportPage</Text>
 		</View>
 	)
 }

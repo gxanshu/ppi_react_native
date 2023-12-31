@@ -1,22 +1,16 @@
-import FontAwesome from "@expo/vector-icons/FontAwesome";
-import { Link, Tabs } from "expo-router";
-import { Pressable } from "react-native";
+import { Tabs } from "expo-router";
 import Loader from "@/components/Loader";
 import { useAuth } from "@/context/AuthContext";
 import AuthHandlerPage from "../auth";
+import { Icon } from "@ui-kitten/components";
 
-/**
- * You can explore the built-in icon families and icons on the web at https://icons.expo.fyi/
- */
-function TabBarIcon(props: {
-  name: React.ComponentProps<typeof FontAwesome>["name"];
-  color: string;
-}) {
-  return <FontAwesome size={28} style={{ marginBottom: -3 }} {...props} />;
+const icon = {
+  height: 24,
+  width: 24
 }
 
 export default function TabLayout() {
-  const { user, loading, signOut } = useAuth();
+  const { user, loading } = useAuth();
 
 
   if (loading) {
@@ -34,35 +28,43 @@ export default function TabLayout() {
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: "#4169e1",
+        tabBarActiveTintColor: "#4169e1"
       }}
     >
       <Tabs.Screen
         name="index"
         options={{
-          title: "Tab One",
-          tabBarIcon: ({ color }) => <TabBarIcon name="code" color={color} />,
-          headerRight: () => (
-            <Link href="/" asChild>
-              <Pressable onPress={signOut}>
-                {({ pressed }) => (
-                  <FontAwesome
-                    name="info-circle"
-                    size={25}
-                    color="#000"
-                    style={{ marginRight: 15, opacity: pressed ? 0.5 : 1 }}
-                  />
-                )}
-              </Pressable>
-            </Link>
-          ),
+          title: "Home",
+          tabBarIcon: ({ color }) => <Icon style={icon} fill={color} name="home-outline" />,
         }}
       />
       <Tabs.Screen
-        name="two"
+        name="statistics"
         options={{
-          title: "Tab Two",
-          tabBarIcon: ({ color }) => <TabBarIcon name="code" color={color} />,
+          title: "Statistics",
+          tabBarIcon: ({ color }) => <Icon style={icon} fill={color} name="bar-chart-outline" />,
+        }}
+      />
+      <Tabs.Screen
+        name="search/index"
+        options={{
+          title: "Search",
+          headerShown: false,
+          tabBarIcon: ({ color }) => <Icon style={icon} fill={color} name="search-outline" />,
+        }}
+      />
+      <Tabs.Screen
+        name="report"
+        options={{
+          title: "Report",
+          tabBarIcon: ({ color }) => <Icon style={icon} fill={color} name="message-square-outline" />,
+        }}
+      />
+      <Tabs.Screen
+        name="about/index"
+        options={{
+          title: "about",
+          tabBarIcon: ({ color }) => <Icon style={icon} fill={color} name="person-outline" />
         }}
       />
     </Tabs>
