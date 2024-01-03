@@ -24,32 +24,51 @@ import { doc, getDoc, setDoc } from "firebase/firestore";
 import { auth, db, realtimeDB, storage } from "@/utils/firebase";
 import { createUserWithEmailAndPassword } from "firebase/auth";
 import { ref, uploadBytes } from "firebase/storage";
-import {
-	increment,
-	ref as realtimeRef,
-	update,
-} from "firebase/database";
+import { increment, ref as realtimeRef, update } from "firebase/database";
 import { getFileExtension } from "@/utils/tools";
 import { useAuth } from "@/context/AuthContext";
+import RazorpayCheckout from "react-native-razorpay";
+import { constent } from "@/utils/constent";
 
 interface Props {
 	pageHandler: () => void;
 }
 
 export interface UserType {
-	Name: string,
-	FatherName: string,
-	PhoneNumber: string,
-	Address: string,
-	District: string,
-	EmailAddress: string,
-	Type: string,
-	AadharFrontFile: string,
-	AadharBackFile: string,
-	CreatedAt: string
+	Name: string;
+	FatherName: string;
+	PhoneNumber: string;
+	Address: string;
+	District: string;
+	EmailAddress: string;
+	Type: string;
+	profilePic: string;
+	AadharFrontFile: string;
+	AadharBackFile: string;
+	CreatedAt: string;
+	subscriptionId: string;
+	Active: boolean;
 }
 
+const imageReader = (uri: string): Promise<Blob> => {
+	return new Promise((resolve, reject) => {
+		const xhr = new XMLHttpRequest();
+		xhr.onload = function () {
+			resolve(xhr.response);
+		};
+		xhr.onerror = function (e) {
+			console.log(e);
+			reject(new TypeError("Network request failed"));
+		};
+		xhr.responseType = "blob";
+		xhr.open("GET", uri, true);
+		xhr.send(null);
+	});
+};
+
 export default function RegisterPage({ pageHandler }: Props) {
+	const [profilePic, setProfilePic] =
+		useState<ImagePicker.ImagePickerAsset | null>(null);
 	const [firstName, setFirstName] = useState<string>();
 	const [lastName, setLastName] = useState<string>();
 	const [fatherName, setFatherName] = useState<string>();
@@ -64,21 +83,29 @@ export default function RegisterPage({ pageHandler }: Props) {
 		useState<ImagePicker.ImagePickerAsset | null>(null);
 	const [password, setPassword] = useState<string>();
 	const [loading, setLoading] = useState(false);
-	const {signIn} = useAuth()
+	const { signIn } = useAuth();
 
 	const possibleUserTypes = ["Member - 20", "Driver - 50", "Associate - 100"];
 
-	const pickImage = async (select: "front" | "back") => {
+	const plan: Record<string, string> = {
+		"Member - 20": constent.memberPlanId,
+		"Driver - 50": constent.driverPlanId,
+		"Associate - 100": constent.associatePlanId,
+	};
+
+	const pickImage = async (select: "front" | "back" | "profile") => {
 		// No permissions request is necessary for launching the image library
 		let result = await ImagePicker.launchImageLibraryAsync({
 			mediaTypes: ImagePicker.MediaTypeOptions.Images,
 			allowsEditing: true,
-			quality: 1,
+			aspect: select == 'profile' ? [4, 4] : [16, 12],
+			quality: 0.7,
 		});
 
 		if (!result.canceled) {
 			if (select == "front") setAadharFront(result.assets[0]);
 			if (select == "back") setAadharBack(result.assets[0]);
+			if (select == "profile") setProfilePic(result.assets[0]);
 		}
 	};
 
@@ -95,7 +122,8 @@ export default function RegisterPage({ pageHandler }: Props) {
 			!userType ||
 			!aadharFront ||
 			!aadharBack ||
-			!password
+			!password ||
+			!profilePic
 		) {
 			Toast.show("Fill complete form!", {
 				duration: Toast.durations.SHORT,
@@ -122,6 +150,8 @@ export default function RegisterPage({ pageHandler }: Props) {
 		}
 
 		try {
+			setLoading(true);
+
 			// checking if phone number already used or not!
 			const docRef = doc(db, "users", phoneNumber);
 			const docSnap = await getDoc(docRef);
@@ -133,87 +163,144 @@ export default function RegisterPage({ pageHandler }: Props) {
 				return;
 			}
 
-			setLoading(true);
+			const planId = plan[possibleUserTypes[userType.row]];
 
-			// creating user
-			const user = await createUserWithEmailAndPassword(auth, email, password);
-
-			// uploading image
-			let documentRef = ref(
-				storage,
-				`documents/${phoneNumber}/aadharFront.${getFileExtension(aadharFront.uri)}`,
+			const res = await fetch(
+				"https://createsubscription-mww474seta-uc.a.run.app/",
+				{
+					method: "POST",
+					headers: {
+						"Content-Type": "application/json",
+					},
+					body: JSON.stringify({
+						planId,
+					}),
+				},
 			);
 
-			const aadharFrontblob: Blob = await new Promise((resolve, reject) => {
-				const xhr = new XMLHttpRequest();
-				xhr.onload = function () {
-					resolve(xhr.response);
-				};
-				xhr.onerror = function (e) {
-					console.log(e);
-					reject(new TypeError("Network request failed"));
-				};
-				xhr.responseType = "blob";
-				xhr.open("GET", aadharFront.uri, true);
-				xhr.send(null);
-			});
+			const createSubscriptionData = await res.json();
 
-			await uploadBytes(documentRef, aadharFrontblob, {
-				contentType: `image/${getFileExtension(aadharFront.uri)}`,
-			});
+			if (!createSubscriptionData.subscriptionId) {
+				Toast.show(createSubscriptionData.error.description, {
+					duration: Toast.durations.SHORT,
+				});
+				setLoading(false);
+				return;
+			}
 
-			documentRef = ref(
-				storage,
-				`documents/${phoneNumber}/aadharBack.${getFileExtension(aadharBack.uri)}`,
-			);
-
-			const aadharBackblob: Blob = await new Promise((resolve, reject) => {
-				const xhr = new XMLHttpRequest();
-				xhr.onload = function () {
-					resolve(xhr.response);
-				};
-				xhr.onerror = function (e) {
-					console.log(e);
-					reject(new TypeError("Network request failed"));
-				};
-				xhr.responseType = "blob";
-				xhr.open("GET", aadharBack.uri, true);
-				xhr.send(null);
-			});
-
-			await uploadBytes(documentRef, aadharBackblob, {
-				contentType: `image/${getFileExtension(aadharBack.uri)}`,
-			});
-
-			// saving user's data
-			const data: UserType = {
-				Name: `${firstName} ${lastName}`,
-				FatherName: fatherName,
-				PhoneNumber: phoneNumber,
-				Address: address,
-				District: districts[district.row],
-				EmailAddress: email,
-				Type: possibleUserTypes[userType.row],
-				AadharFrontFile: `documents/${phoneNumber}/aadharFront.${getFileExtension(aadharFront.uri)}`,
-				AadharBackFile: `documents/${phoneNumber}/aadharBack.${getFileExtension(aadharBack.uri)}`,
-				CreatedAt: new Date().toISOString(),
+			let options = {
+				description: "Join us!",
+				image: "https://i.imgur.com/3g7nmJC.jpg",
+				currency: "INR",
+				key: constent.razorpayApiKey,
+				name: "Parivatan Party Of India",
+				subscription_id: createSubscriptionData.subscriptionId,
+				prefill: {
+					email: email,
+					contact: phoneNumber,
+					name: `${firstName} ${lastName}`,
+				},
 			};
 
-			setDoc(doc(db, "users", `${phoneNumber}`), data);
+			RazorpayCheckout.open(options as any).then(async (response) => {
+				// creating user
+				const user = await createUserWithEmailAndPassword(
+					auth,
+					email,
+					password,
+				);
 
-			// increment district total user
-			const dbRef = realtimeRef(realtimeDB);
-			const updates: any = {};
-			updates[`rajasthan/${districts[district.row]}`] = increment(1);
-			update(dbRef, updates);
+				// uploading image
+				let documentRef = ref(
+					storage,
+					`documents/${phoneNumber}/aadharFront.${getFileExtension(
+						aadharFront.uri,
+					)}`,
+				);
 
-			Toast.show("Registered Successfully!", {
-				duration: Toast.durations.SHORT,
+				const aadharFrontblob = await imageReader(aadharFront.uri);
+
+				await uploadBytes(documentRef, aadharFrontblob, {
+					contentType: `image/${getFileExtension(aadharFront.uri)}`,
+				});
+
+				documentRef = ref(
+					storage,
+					`documents/${phoneNumber}/aadharBack.${getFileExtension(
+						aadharBack.uri,
+					)}`,
+				);
+
+				const aadharBackblob = await imageReader(aadharBack.uri);
+
+				await uploadBytes(
+					documentRef,
+					aadharBackblob,
+					{
+						contentType: `image/${getFileExtension(aadharBack.uri)}`,
+					},
+				);
+
+				documentRef = ref(
+					storage,
+					`documents/${phoneNumber}/profilePic.${getFileExtension(
+						profilePic.uri,
+					)}`,
+				);
+
+				const profilePicBlob = await imageReader(profilePic.uri);
+
+				await uploadBytes(
+					documentRef,
+					profilePicBlob,
+					{
+						contentType: `image/${getFileExtension(profilePic.uri)}`,
+					},
+				);
+
+				const todayDate = new Date();
+				let oneMonthLaterDate = new Date(todayDate);
+				oneMonthLaterDate.setMonth(oneMonthLaterDate.getMonth() + 11);
+
+				// saving user's data
+				const data: UserType = {
+					Name: `${firstName} ${lastName}`,
+					FatherName: fatherName,
+					PhoneNumber: phoneNumber,
+					Address: address,
+					District: districts[district.row],
+					EmailAddress: email,
+					Active: true,
+					Type: possibleUserTypes[userType.row],
+					profilePic: `documents/${phoneNumber}/profilePic.${getFileExtension(
+						profilePic.uri,
+					)}`,
+					AadharFrontFile: `documents/${phoneNumber}/aadharFront.${getFileExtension(
+						aadharFront.uri,
+					)}`,
+					AadharBackFile: `documents/${phoneNumber}/aadharBack.${getFileExtension(
+						aadharBack.uri,
+					)}`,
+					CreatedAt: todayDate.toISOString(),
+					subscriptionId: createSubscriptionData.subscriptionId
+				};
+
+				setDoc(doc(db, "users", `${phoneNumber}`), data);
+
+				// increment district total user
+				const dbRef = realtimeRef(realtimeDB);
+				const updates: any = {};
+				updates[`rajasthan/${districts[district.row]}`] = increment(1);
+				update(dbRef, updates);
+
+				Toast.show("Registered Successfully!", {
+					duration: Toast.durations.SHORT,
+				});
+
+				signIn(user.user);
+
+				setLoading(false);
 			});
-
-			signIn(user.user);
-
-			setLoading(false);
 		} catch (e: any) {
 			Toast.show(e.message, {
 				duration: Toast.durations.LONG,
@@ -229,7 +316,26 @@ export default function RegisterPage({ pageHandler }: Props) {
 	return (
 		<ScrollView>
 			<Layout style={styles.container}>
-				<Icon style={styles.icon} fill="#8F9BB3" name="person-add" />
+				<TouchableOpacity
+					onPress={() => {
+						pickImage("profile");
+					}}
+				>
+					{profilePic ? (
+						<Image
+							source={{ uri: profilePic.uri }}
+							style={{ height: 72, width: 72, borderRadius: 100 }}
+						/>
+					) : (
+						<Image
+							source={require("@/assets/images/upload_avatar.jpg")}
+							style={{
+								height: 72,
+								width: 72,
+							}}
+						/>
+					)}
+				</TouchableOpacity>
 				<Text category="h5" style={styles.heading}>
 					Create an account!
 				</Text>
@@ -256,6 +362,7 @@ export default function RegisterPage({ pageHandler }: Props) {
 				<Input
 					placeholder="Phone Number"
 					keyboardType="phone-pad"
+					maxLength={10}
 					style={styles.input}
 					value={phoneNumber}
 					onChangeText={(nextValue) => setPhoneNumber(nextValue)}

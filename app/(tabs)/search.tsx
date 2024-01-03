@@ -1,11 +1,12 @@
 import { UserType } from "@/app/auth/RegisterPage";
-import { db } from "@/utils/firebase";
+import { db, storage } from "@/utils/firebase";
 import { Avatar, Card, Icon, Input, Layout, Text } from "@ui-kitten/components";
 import { router } from "expo-router";
 import { doc, getDoc } from "firebase/firestore";
-import { useState } from "react";
+import { useState, useEffect} from "react";
 import { StyleSheet, StatusBar, View, ActivityIndicator } from "react-native";
 import Toast from "react-native-root-toast";
+import { getDownloadURL, ref } from "firebase/storage";
 
 export default function SearchPage() {
 	const [loading, setLoading] = useState(false);
@@ -61,19 +62,35 @@ const ListItem = ({
 }: {
 	details: UserType
 }) => {
+	const [image, setImage] = useState<string | undefined>();
+
+	const downloadImage = async() => {
+		try {
+			const url = await getDownloadURL(ref(storage, details.profilePic));
+			setImage(url);
+		} catch (e: any) {
+			Toast.show(e.message, {
+				duration: Toast.durations.SHORT
+			})
+		}
+	}
+
+	useEffect(()=> {
+		downloadImage();
+	}, [])
 
 	return (
 		<Card style={styles.listItem} onPress={()=> {
 			router.push({
 				pathname: "/user/[id]",
-				params: {id: details.PhoneNumber, ...details}
+				params: {id: details.PhoneNumber, ...details, Active: String(details.Active)}
 			})
 		}}>
 			<View style={styles.listList}>
 				<Avatar
 					size="medium"
 					style={{ margin: -10 }}
-					source={require("@/assets/images/avatar.png")}
+					source={image ? {uri: image} : require("@/assets/images/avatar.png")}
 				/>
 				<View>
 					<Text>{details.Name}</Text>
